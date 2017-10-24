@@ -12,6 +12,8 @@ import copy
 import re
 import os
 import glob
+import codecs
+
 
 # ----Paths---
 
@@ -100,8 +102,9 @@ def get_annotations(psm_row):
         url = 'http://129.215.14.63/xiAnnotator/annotate/%s/85160-94827-76653-69142/%s/?peptide=%s&peptide=%s&link=%s&link=%s' % (
             int(psm_row.SearchID), int(psm_row.PSMID), psm_row.PepSeq1, psm_row.PepSeq2, int(psm_row.LinkPos1),
             int(psm_row.LinkPos2))
-    # print url
-    data = json.load(urllib.request.urlopen(url))
+
+    reader = codecs.getreader("utf-8")
+    data = json.load(reader(urllib.request.urlopen(url)))
     return data
 
 
