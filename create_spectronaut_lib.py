@@ -29,8 +29,10 @@ iRT_t = 47.469
 
 proteinId = "7PMix"
 includeNeutralLossFragments = False
-
+writeClSitesToModifiedSequence = True
 label_experiment = False
+lightLabelName = "bs3-light"
+heavyLabelName = "bs3-heavy"
 deuteriumCount = 4
 
 nClContainingFragments = 15
@@ -295,15 +297,13 @@ best_df2 = best_df.dropna(subset=['PSMID', 'PepSeq1', 'PepSeq2', 'LinkPos1', 'Li
 lib_list = []
 i = 1
 for psm_index, psm in best_df2.iterrows():
-    #    if ("ox" in replace_mods(psm.PepSeq1 + "_" + psm.PepSeq2) )and ("bs3" in replace_mods(psm.PepSeq1 + "_" + psm.PepSeq2)):
-    #        break
     if i % 50 == 0:
         print ("{}/{} Done.".format(i, best_df2.shape[0]))
 
     if check_for_isotope_labeling(psm.Crosslinker) == 0:
-        lbl = "bs3-light"
+        lbl = lightLabelName
     else:
-        lbl = "bs3-heavy"
+        lbl = heavyLabelName
 
     entries = []
     xiAnn_json = get_annotations(psm)
@@ -314,18 +314,23 @@ for psm_index, psm in best_df2.iterrows():
     cl_residue_pair.sort()
     cl_residue_pair = [str(x) for x in cl_residue_pair]
 
-    test = psm.PepSeq1 + "_" + psm.PepSeq2
+    strippedSequence = strip_sequence(psm['PepSeq1'] + "_" + psm['PepSeq2'])
+    labeledSequence = get_lbl_sequence(psm, lbl, label_both=True)
+
+    if writeClSitesToModifiedSequence:
+        modifiedSequence = get_lbl_sequence(psm, lightLabelName, label_both=True)
+    else:
+        modifiedSequence = replace_mods(psm.PepSeq1 + "_" + psm.PepSeq2)
 
     entry_template = {
         "ProteinId": psm.Protein1 + " _" + psm.Protein2,
-        "StrippedSequence": strip_sequence(psm['PepSeq1'] + "_" + psm['PepSeq2']),
+        "StrippedSequence": strippedSequence,
         "iRT": psm.iRT,
         "RT": psm.rt,
         "FragmentGroupId": psm.pep_seq,
         "PrecursorCharge": int(psm['match charge']),
         "PrecursorMz": psm['match mass']/psm['match charge']+1.00794,
-        #"ModifiedSequence": replace_HL_mods(psm.PepSeq1 + "_" + psm.PepSeq2),
-        "ModifiedSequence": replace_mods(psm.PepSeq1 + "_" + psm.PepSeq2),
+        "ModifiedSequence": modifiedSequence,
         "IsotopeLabel": check_for_isotope_labeling(psm.Crosslinker),
         "scanID": psm['scan'],
         "run": psm.run,
@@ -333,7 +338,7 @@ for psm_index, psm in best_df2.iterrows():
         #"peptide1": strip_sequence(psm['PepSeq1']),
         #"peptide2": strip_sequence(psm['PepSeq2']),
         "cl_residue_pair": "_".join(cl_residue_pair),
-        "LabeledSequence": get_lbl_sequence(psm, lbl)
+        "LabeledSequence": labeledSequence
     }
 
     for fragment in fragments:
