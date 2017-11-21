@@ -35,6 +35,9 @@ lightLabelName = "bs3-light"
 heavyLabelName = "bs3-heavy"
 deuteriumCount = 4
 
+fragmentMzLowerLim = 100
+fragmentMzUpperLim = 1000
+
 nClContainingFragments = 15
 nLinearFragments = 5
 
@@ -258,7 +261,7 @@ def get_cl_string(clpos, pepseq, lbl):
     """
     Inserts the lbl sequence into the peptide sequence
     """
-    return (pepseq[:clpos + 1] + "[" + lbl + "]" + pepseq[clpos + 1:])
+    return pepseq[:clpos + 1] + "[" + lbl + "]" + pepseq[clpos + 1:]
 
 
 def check_AA(cl_pos1, modseq1, linkable, entry_template):
@@ -276,7 +279,6 @@ def check_AA(cl_pos1, modseq1, linkable, entry_template):
                 entry_template["StrippedSequence"]))
 
 
-# %%
 # annotate psms with retention time
 psm_df['rt'] = psm_df.apply(lambda row: get_rt_from_scanID(row["scan"], row["run"], msruns), axis=1)
 
@@ -293,12 +295,12 @@ for index, group in psm_df.groupby("pep_seq"):
 best_df = pd.concat(best_scores)
 best_df2 = best_df.dropna(subset=['PSMID', 'PepSeq1', 'PepSeq2', 'LinkPos1', 'LinkPos2'])
 
-# %%
+
 lib_list = []
 i = 1
 for psm_index, psm in best_df2.iterrows():
     if i % 50 == 0:
-        print ("{}/{} Done.".format(i, best_df2.shape[0]))
+        print("{}/{} Done.".format(i, best_df2.shape[0]))
 
     if check_for_isotope_labeling(psm.Crosslinker) == 0:
         lbl = lightLabelName
@@ -373,7 +375,7 @@ for psm_index, psm in best_df2.iterrows():
 
     entry_df = pd.DataFrame.from_records(entries)
     if len(entry_df) > 0:
-        entry_df = entry_df[(entry_df.FragmentMz > 100) & (entry_df.FragmentMz < 1300)]
+        entry_df = entry_df[(entry_df.FragmentMz >= fragmentMzLowerLim) & (entry_df.FragmentMz <= fragmentMzUpperLim)]
         entry_df.sort_values(by="RelativeFragmentIntensity", inplace=True, ascending=False)
         entry_df.RelativeFragmentIntensity = entry_df.apply(
                 lambda row: row.RelativeFragmentIntensity / entry_df.RelativeFragmentIntensity.max(), axis=1)
@@ -387,7 +389,7 @@ if not includeNeutralLossFragments:
     lib_df = lib_df[~lib_df.LossyFragment]
 
 filtered_fragments_list = []
-min_CLfragments = 2
+
 for index, group in lib_df.groupby(['FragmentGroupId', 'IsotopeLabel']):
     CLContaining = group[group.CLContainingFragment]
     nonCLContaining = group[~group.CLContainingFragment]
@@ -400,7 +402,7 @@ lib_df = pd.concat(filtered_fragments_list)
 
 if label_experiment:
     missing_peptides = []
-    print ("adding missing peptides...")
+    print("adding missing peptides...")
 
     deuterium_mass = 2.014102
     hydrogen_mass = 1.00794
@@ -464,7 +466,7 @@ d = datetime.date.strftime(d, "%m%d%y")
 idstr = "_spectronaut_lbls"
 
 # save the library
-print ("Writing the library...")
+print("Writing the library...")
 lib_df.to_csv(output_path + proteinId + "_" + "_".join(
-        [str(x) for x in lib_df.searchID.unique()]) + "nCL{}_nLin{}_lossy{}_lib{}.csv".format(
-        nClContainingFragments, nLinearFragments, includeNeutralLossFragments, idstr), index=False)
+        [str(x) for x in lib_df.searchID.unique()]) + "nCL{}_nLin{}_lossy{}_lib{}_{}.csv".format(
+        nClContainingFragments, nLinearFragments, includeNeutralLossFragments, idstr, d), index=False)
