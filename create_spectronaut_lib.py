@@ -1,6 +1,3 @@
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
-
 import pandas as pd
 import pymzml
 import numpy as np
@@ -11,68 +8,15 @@ import sys
 import copy
 import re
 import os
-import glob
 import codecs
 
-
-# ----Paths---
-
-baseDir = "D:/Daten/Edinburgh/Fraenze/DIA paper 8 protein mix/Library/"
-psm_csv_path = baseDir + "psm_csv/"
-mzml_path = baseDir + "mzml/"
-output_path = baseDir + "out/"
-
-# iRT equation parameters y = m * x + t
-# e.g. y= 0.6452 x + 47.469
-iRT_m = 0.6452
-iRT_t = 47.469
-
-proteinId = "7PMix"
-includeNeutralLossFragments = False
-writeClSitesToModifiedSequence = True
-label_experiment = False
-lightLabelName = "bs3-light"
-heavyLabelName = "bs3-heavy"
-deuteriumCount = 4
-
-fragmentMzLowerLim = 100
-fragmentMzUpperLim = 1000
-
-nClContainingFragments = 15
-nLinearFragments = 5
-
-# ------------
-# checks
-if nClContainingFragments + nLinearFragments > 20:
-    raise Exception("Total number of fragments should not exceed 20!")
-
-# create psm_dataframe and merge xiIDs and gradient information
-df_list = []
-for csv in glob.glob(psm_csv_path + "*.csv"):
-    temp_df = pd.read_csv(csv)
-    df_list.append(temp_df)
-psm_df = pd.concat(df_list, ignore_index=True)
+from config import *
 
 
-# load mzmls
-mzmls = []
-for filename in os.listdir(mzml_path):
-    if "mzML" in filename:
-        mzmls.append(filename)
-
-msruns = {}
-for mzml in mzmls:
-    msrun = pymzml.run.Reader(mzml_path + mzml)
-    msruns[mzml[:-5]] = msrun
-
-
-def get_rt_from_scanID(id1, run_name, msruns):
-    msrun = msruns[run_name]
-    # print run_name
-    # print id1
+def get_rt_from_scan_id(scan_id, mzml_reader):
     try:
         # rt = msrun[id1]['scan start time']
-        rt = msrun[int(id1)]['scan start time']
+        rt = mzml_reader[int(scan_id)]['scan start time']
     except:
         rt = 0
     return rt
@@ -213,7 +157,6 @@ def get_lbl_sequence(psm, lbl, label_both=True):
     """
     Creates the 'LabeledSequene' column for spectronaut.
 
-
     """
 
     seq1 = replace_mods(psm.PepSeq1, remove_heavy=False)
@@ -264,9 +207,9 @@ def get_cl_string(clpos, pepseq, lbl):
     return pepseq[:clpos + 1] + "[" + lbl + "]" + pepseq[clpos + 1:]
 
 
-def check_AA(cl_pos1, modseq1, linkable, entry_template):
+def check_amino_acid(cl_pos1, modseq1, linkable, entry_template):
     """
-    checks if the cl amino acid is a vlid one
+    checks if the cl amino acid is a valid one
     """
     if cl_pos1 == 0:
         pass
@@ -279,8 +222,35 @@ def check_AA(cl_pos1, modseq1, linkable, entry_template):
                 entry_template["StrippedSequence"]))
 
 
+# checks
+if nClContainingFragments + nLinearFragments > 20:
+    raise Exception("Total number of fragments should not exceed 20!")
+
+# create PSM DataFrame
+print("Reading in PSM csv files...")
+df_list = []
+for csv_filename in os.listdir(psm_csv_path):
+    if csv_filename.endswith(".csv"):
+        print("reading %s..." % csv_filename)
+        df_list.append(pd.read_csv(psm_csv_path + csv_filename))
+    else:
+        print("skipped file %s" % csv_filename)
+psm_df = pd.concat(df_list, ignore_index=True)
+
+# load mzmls
+print("Reading in mzML files...")
+mzML_reader_map = {}
+for mzML_filename in os.listdir(mzml_path):
+    if mzML_filename.endswith(".mzML"):
+        print("reading %s..." % mzML_filename)
+        mzML_reader_map[mzML_filename[:-5]] = pymzml.run.Reader(mzml_path + mzML_filename, build_index_from_scratch=True)
+    else:
+        print("skipped file %s" % mzML_filename)
+
+
 # annotate psms with retention time
-psm_df['rt'] = psm_df.apply(lambda row: get_rt_from_scanID(row["scan"], row["run"], msruns), axis=1)
+print("Getting retention time from mzMLs...")
+psm_df['rt'] = psm_df.apply(lambda row: get_rt_from_scan_id(row["scan"], mzML_reader_map[row["run"]]), axis=1)
 
 # transform rts to iRT -> what about the nan columns?
 psm_df['iRT'] = psm_df.apply(lambda row: calculate_iRT_value(row.rt, iRT_m, iRT_t), axis=1)
