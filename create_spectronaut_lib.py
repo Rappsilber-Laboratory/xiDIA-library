@@ -272,10 +272,13 @@ for psm_index, psm in best_df2.iterrows():
     if i % 50 == 0:
         print("{}/{} Done.".format(i, best_df2.shape[0]))
 
-    if check_for_isotope_labeling(psm.Crosslinker) == 0:
-        lbl = lightLabelName
+    if label_experiment:
+        lbl = clLabelName
     else:
-        lbl = heavyLabelName
+        if check_for_isotope_labeling(psm.Crosslinker) == 0:
+            lbl = clLightLabelName
+        else:
+            lbl = clHeavyLabelName
 
     entries = []
     xiAnn_json = get_annotations(psm)
@@ -290,7 +293,7 @@ for psm_index, psm in best_df2.iterrows():
     labeledSequence = get_lbl_sequence(psm, lbl, label_both=True)
 
     if writeClSitesToModifiedSequence:
-        modifiedSequence = get_lbl_sequence(psm, lightLabelName, label_both=True)
+        modifiedSequence = get_lbl_sequence(psm, lbl, label_both=True)
     else:
         modifiedSequence = replace_mods(psm.PepSeq1 + "_" + psm.PepSeq2)
 

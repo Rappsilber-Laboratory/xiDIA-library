@@ -13,11 +13,11 @@ iRT_t = 53.34
 proteinId = "HSA"
 includeNeutralLossFragments = False
 writeClSitesToModifiedSequence = True
-
+clLabelName = "bs3"
 
 label_experiment = False
-lightLabelName = "bs3-light"    # will be ignored if label_experiment is False
-heavyLabelName = "bs3-heavy"    # will be ignored if label_experiment is False
+clLightLabelName = "bs3-light"    # will be ignored if label_experiment is False
+clHeavyLabelName = "bs3-heavy"    # will be ignored if label_experiment is False
 deuteriumCount = 4              # will be ignored if label_experiment is False
 
 fragmentMzLowerLim = 100
