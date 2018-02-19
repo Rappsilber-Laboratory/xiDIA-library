@@ -17,7 +17,9 @@ def get_rt_from_scan_id(scan_id, mzml_reader):
     try:
         # rt = msrun[id1]['scan start time']
         rt = mzml_reader[int(scan_id)]['scan start time']
-    except:
+    except KeyError as e:
+        print('could not get rt for scan %s', scan_id)
+        print(e)
         rt = 0
     return rt
 
