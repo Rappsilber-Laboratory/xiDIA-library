@@ -352,7 +352,7 @@ for psm_index, psm in best_df2.iterrows():
         entry_df.sort_values(by="RelativeFragmentIntensity", inplace=True, ascending=False)
         entry_df.RelativeFragmentIntensity = entry_df.apply(
                 lambda row: row.RelativeFragmentIntensity / entry_df.RelativeFragmentIntensity.max(), axis=1)
-        #else einfügen print i für error
+        # ToDo: else error handling?
     lib_list.append(entry_df)
     i += 1
 lib_df = pd.concat(lib_list)
