@@ -260,6 +260,9 @@ psm_df['pep_seq'] = psm_df.apply(lambda row: create_unique_pep_seq(row), axis=1)
 
 psm_df.sort_values("Score", inplace=True, ascending=False)
 
+# filter out decoys
+psm_df = psm_df[psm_df.isTT]
+
 best_scores = []
 for index, group in psm_df.groupby("pep_seq"):
     best_scores.append(group.head(1))
