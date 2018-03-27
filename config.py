@@ -13,7 +13,7 @@ iRT_t = 53.34
 proteinId = "HSA"
 includeNeutralLossFragments = False
 writeClSitesToModifiedSequence = True
-clLabelName = "bs3"
+clName = "sda"
 
 label_experiment = False
 clLightLabelName = "bs3-light"    # will be ignored if label_experiment is False

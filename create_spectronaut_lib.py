@@ -274,8 +274,8 @@ for psm_index, psm in best_df2.iterrows():
     if i % 50 == 0:
         print("{}/{} Done.".format(i, best_df2.shape[0]))
 
-    if label_experiment:
-        lbl = clLabelName
+    if not label_experiment:
+        lbl = clName
     else:
         if check_for_isotope_labeling(psm.Crosslinker) == 0:
             lbl = clLightLabelName
@@ -330,8 +330,8 @@ for psm_index, psm in best_df2.iterrows():
                 for cluster in fragment["clusterInfo"]:
                     if cluster['Clusterid'] == clusterId:
                         entry["FragmentMz"] = cluster['calcMZ']
-                entry["RelativeFragmentIntensity"] = xiAnn_json['peaks'][firstPeakId][
-                    'intensity']  # [x['intensity'] for x in xiAnn_json['peaks'] if clusterId in x['clusterIds']]
+                entry["RelativeFragmentIntensity"] = xiAnn_json['peaks'][firstPeakId]['intensity']
+                # [x['intensity'] for x in xiAnn_json['peaks'] if clusterId in x['clusterIds']]
                 if 'H20' in fragment['name']:
                     entry["FragmentLossType"] = 'H2O'
                 elif 'NH3' in fragment['name']:
