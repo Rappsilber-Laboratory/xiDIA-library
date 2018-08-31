@@ -38,7 +38,7 @@ def create_unique_pep_seq(row):
     linkpos1 = sorted_peps[0]['linkpos']
     linkpos2 = sorted_peps[1]['linkpos']
 
-    return '{}_{}{}-{}:{}'.format(pep1, pep2, linkpos1, linkpos2, charge)
+    return '{}_{}-{}_{}:{}'.format(pep1, pep2, linkpos1, linkpos2, charge)
 
 
 def get_annotations(psm_row):
