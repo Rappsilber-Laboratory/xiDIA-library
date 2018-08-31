@@ -448,3 +448,23 @@ print("Writing the library...")
 lib_df.to_csv(output_path + proteinId + "_" + "_".join(
         [str(x) for x in lib_df.searchID.unique()]) + "nCL{}_nLin{}_lossy{}_lib{}_{}.csv".format(
         nClContainingFragments, nLinearFragments, includeNeutralLossFragments, idstr, d), index=False)
+
+
+with open(output_path + "params.txt", "w") as text_file:
+    psm_csv_path = baseDir + "psm_csv/"
+    text_file.write("iRT_m : %s\n" % iRT_m)
+    text_file.write("iRT_t : %s\n" % iRT_t)
+    text_file.write("proteinId : %s\n" % proteinId)
+    text_file.write("includeNeutralLossFragments: %s\n" % includeNeutralLossFragments)
+    text_file.write("writeClSitesToModifiedSequence : %s\n" % writeClSitesToModifiedSequence)
+    text_file.write("clName : %s\n" % clName)
+    text_file.write("label_experiment : %s\n" % label_experiment)
+    text_file.write("clLightLabelName : %s\n" % clLightLabelName)
+    text_file.write("clHeavyLabelName : %s\n" % clHeavyLabelName)
+    text_file.write("deuteriumCount : %s\n" % deuteriumCount)
+    text_file.write("fragmentMzLowerLim : %s\n" % fragmentMzLowerLim)
+    text_file.write("fragmentMzUpperLim : %s\n" % fragmentMzUpperLim)
+    text_file.write("nClContainingFragments : %s\n" % nClContainingFragments)
+    text_file.write("nLinearFragments : %s\n" % nLinearFragments)
+    text_file.write("in files mzML:\n%s\n" % "\n".join(os.listdir(mzml_path)))
+    text_file.write("in files PSM CSV:\n%s\n" % "\n".join(os.listdir(psm_csv_path)))
