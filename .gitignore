@@ -1,4 +1,5 @@
 \.idea/
-python-env/
+python\-env/
+python_env/
 config.py
 *.pyc
