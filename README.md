@@ -22,10 +22,6 @@ cd into the repository:
 
 ```cd xiDIA-library```
 
-Change owner of log directory to www-data:
-
-```sudo chown www-data:www-data log```
-
 Create python virtualenv:
 
 ```virtualenv --no-site-packages python_env```
