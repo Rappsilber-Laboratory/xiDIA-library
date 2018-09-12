@@ -3,11 +3,13 @@
 Tool to generate a cross-linking spectral library for Spectronaut from Xi results.
 
 ### Note
-This tool only works if your search results were deposited in the XiDB (Members of the Rappsilber lab and collaborators). 
+This tool only works if your search results were deposited in the XiDB (Members of the Rappsilber lab and collaborators).
+
 If there is interest from external people this might change in the future.
 
 ### Requirements
 Python 2.7
+
 virtualenv
 
 ### Installation
@@ -39,6 +41,7 @@ Install dependencies:
 
 ### Required files
 XiFDR PSM csv file(s)
+
 all runs that are referenced in the XiFDR PSM files in mzML format
 
 ### Usage
