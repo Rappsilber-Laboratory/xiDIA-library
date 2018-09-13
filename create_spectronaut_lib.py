@@ -110,7 +110,7 @@ def check_for_isotope_labeling(crosslinker):
 #     plt.hist(diff)
 
 
-def invert_modifications(modstring, lth=True):
+def invert_modifications(mod_string, lth=True):
     """
     Inverts the modifications for artificially generated transitions
 
@@ -124,16 +124,16 @@ def invert_modifications(modstring, lth=True):
     if lth:
         # replace light with heavy
         for i, j in zip(light_mods, heavy_mods):
-            modstring = modstring.replace(i, j)
+            mod_string = mod_string.replace(i, j)
     else:
         # replace light with heavy
         for i, j in zip(light_mods, heavy_mods):
-            modstring = modstring.replace(j, i)
+            mod_string = mod_string.replace(j, i)
 
-    return modstring
+    return mod_string
 
 
-def calcIsotopeFragMz(mz, charge, cl_containing, label, label_mz_difference):
+def calc_isotope_frag_mz(mz, charge, cl_containing, label, label_mz_difference):
     """
     Adjusts the mass computation for the un-indentified labeled sequence
     """
@@ -157,7 +157,7 @@ def get_all_mods(mod_seq_list):
 
 def get_lbl_sequence(psm, lbl, label_both=True):
     """
-    Creates the 'LabeledSequene' column for spectronaut.
+    Creates the 'LabeledSequence' column for spectronaut.
 
     """
 
@@ -353,6 +353,7 @@ for psm_index, psm in best_df2.iterrows():
 
     entry_df = pd.DataFrame.from_records(entries)
     if len(entry_df) > 0:
+        entry_df.drop_duplicates(inplace=True)
         entry_df = entry_df[(entry_df.FragmentMz >= fragmentMzLowerLim) & (entry_df.FragmentMz <= fragmentMzUpperLim)]
         entry_df.sort_values(by="RelativeFragmentIntensity", inplace=True, ascending=False)
         entry_df.RelativeFragmentIntensity = entry_df.apply(
@@ -392,16 +393,15 @@ if label_experiment:
         if len(group.IsotopeLabel.unique()) < 2:
 
             missing_pep = copy.deepcopy(group)
-            missing_pep['FragmentMz'] = missing_pep.apply(lambda row:
-                calcIsotopeFragMz(row.FragmentMz, row.FragmentCharge, row.CLContainingFragment, row.IsotopeLabel, mzdiff), axis=1)
+            missing_pep['FragmentMz'] = missing_pep.apply(lambda row: calc_isotope_frag_mz(row.FragmentMz, row.FragmentCharge, row.CLContainingFragment, row.IsotopeLabel, mzdiff), axis=1)
 
-            pcharge = missing_pep["PrecursorCharge"].iloc[0]
+            pre_charge = missing_pep["PrecursorCharge"].iloc[0]
 
             if missing_pep['IsotopeLabel'].mean() == deuteriumCount:
                 missing_pep['IsotopeLabel'] = 0
                 # count the modifications
                 nmods = missing_pep['LabeledSequence'].iloc[0].count("bs3")
-                missing_pep['PrecursorMz'] = missing_pep['PrecursorMz'].mean() - (mzdiff * nmods) / pcharge
+                missing_pep['PrecursorMz'] = missing_pep['PrecursorMz'].mean() - (mzdiff * nmods) / pre_charge
                 missing_pep['LabeledSequence'] = [invert_modifications(i.replace("[bs3-heavy]", "[bs3-light]"), lth=False)
                                                   for i in missing_pep['LabeledSequence']]
 
@@ -414,7 +414,7 @@ if label_experiment:
                 nmods = missing_pep['LabeledSequence'].iloc[0].count("bs3")
                 # generate the heavy version
                 missing_pep['IsotopeLabel'] = 4
-                missing_pep['PrecursorMz'] = missing_pep['PrecursorMz'].mean() + (mzdiff * nmods) / pcharge
+                missing_pep['PrecursorMz'] = missing_pep['PrecursorMz'].mean() + (mzdiff * nmods) / pre_charge
                 missing_pep['LabeledSequence'] = [invert_modifications(i.replace("[bs3-light]", "[bs3-heavy]"), lth=True)
                                                   for i in missing_pep['LabeledSequence']]
                 # changes also the modifications strings...
