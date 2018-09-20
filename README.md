@@ -8,7 +8,7 @@ This tool only works if your search results were deposited in the XiDB (Members 
 If there is interest from external people this might change in the future.
 
 ### Requirements
-Python 2.7
+Python 3
 
 virtualenv
 
