@@ -352,9 +352,10 @@ for psm_index, psm in best_df2.iterrows():
                 entries.append(pd.Series(entry))
 
     entry_df = pd.DataFrame.from_records(entries)
-    entry_df.drop_duplicates(inplace=True)
-    entry_df = entry_df[(entry_df.FragmentMz >= fragmentMzLowerLim) & (entry_df.FragmentMz <= fragmentMzUpperLim)]
     if len(entry_df) > 0:
+        entry_df = entry_df[(entry_df.FragmentMz >= fragmentMzLowerLim) & (entry_df.FragmentMz <= fragmentMzUpperLim)]
+    if len(entry_df) > 0:
+        entry_df.drop_duplicates(inplace=True)
         entry_df.sort_values(by="RelativeFragmentIntensity", inplace=True, ascending=False)
         entry_df.RelativeFragmentIntensity = entry_df.apply(
                 lambda row: row.RelativeFragmentIntensity / entry_df.RelativeFragmentIntensity.max(), axis=1)
