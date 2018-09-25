@@ -1,5 +1,6 @@
 # Paths
-baseDir = "/media/data/work/E180125_DDA_Library/"
+baseDir = "/home/lars/BER_datastore/lkolbowski/xiDIA-library/"
+
 psm_csv_path = baseDir + "psm_csv/"
 mzml_path = baseDir + "mzml/"
 output_path = baseDir + "out/"
@@ -7,10 +8,10 @@ output_path = baseDir + "out/"
 # iRT equation parameters
 # y = m * x + t
 # e.g. y= 0.6452 x + 47.469
-iRT_m = 0.56
-iRT_t = 53.34
+iRT_m = 0.3807
+iRT_t = 47.887
 
-proteinId = "HSA"
+proteinId = "cytochromeC"
 includeNeutralLossFragments = False
 writeClSitesToModifiedSequence = True
 clName = "sda"
@@ -20,9 +21,9 @@ clLightLabelName = "bs3-light"    # will be ignored if label_experiment is False
 clHeavyLabelName = "bs3-heavy"    # will be ignored if label_experiment is False
 deuteriumCount = 4              # will be ignored if label_experiment is False
 
-fragmentMzLowerLim = 100
-fragmentMzUpperLim = 1000
+fragmentMzLowerLim = 300
+fragmentMzUpperLim = 1400
 
 # Total number of fragments can not exceed 20!
-nClContainingFragments = 15
-nLinearFragments = 5
+nClContainingFragments = 10
+nLinearFragments = 10
