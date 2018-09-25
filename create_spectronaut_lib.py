@@ -18,7 +18,7 @@ def get_rt_from_scan_id(scan_id, mzml_reader):
         # rt = msrun[id1]['scan start time']
         rt = mzml_reader[int(scan_id)]['scan start time']
     except KeyError as e:
-        print('could not get rt for scan %s', scan_id)
+        print('could not get rt for scan %s' % scan_id)
         print(e)
         rt = 0
     return rt
@@ -352,9 +352,9 @@ for psm_index, psm in best_df2.iterrows():
                 entries.append(pd.Series(entry))
 
     entry_df = pd.DataFrame.from_records(entries)
+    entry_df.drop_duplicates(inplace=True)
+    entry_df = entry_df[(entry_df.FragmentMz >= fragmentMzLowerLim) & (entry_df.FragmentMz <= fragmentMzUpperLim)]
     if len(entry_df) > 0:
-        entry_df.drop_duplicates(inplace=True)
-        entry_df = entry_df[(entry_df.FragmentMz >= fragmentMzLowerLim) & (entry_df.FragmentMz <= fragmentMzUpperLim)]
         entry_df.sort_values(by="RelativeFragmentIntensity", inplace=True, ascending=False)
         entry_df.RelativeFragmentIntensity = entry_df.apply(
                 lambda row: row.RelativeFragmentIntensity / entry_df.RelativeFragmentIntensity.max(), axis=1)
