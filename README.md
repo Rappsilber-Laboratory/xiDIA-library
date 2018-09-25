@@ -24,7 +24,7 @@ cd into the repository:
 
 Create python virtualenv:
 
-```virtualenv --no-site-packages python_env```
+```virtualenv -p python3 --no-site-packages python_env```
 
 Activate virtualenv:
 
