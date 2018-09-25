@@ -42,7 +42,7 @@ all runs that are referenced in the XiFDR PSM files in mzML format
 
 ### Usage
 
-Modify the config.py file and then run create_spectronaut_lib.py
+Modify the config.py.example file, save it as config.py and then run create_spectronaut_lib.py
 
 ```
 baseDir = "/path/to/your/directory/"    # Path to your working directory
