@@ -8,6 +8,7 @@ This tool requires adaptation in the code regarding the location of the peak lis
 To make it work:
 
 use the get_annotation_json() function instead of get_annotation_xidb().
+
 to create a valid json request use the provided create_json_annotation_request() with your data including the peak list.
 
 ### Requirements
