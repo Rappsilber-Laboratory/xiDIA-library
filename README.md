@@ -3,9 +3,7 @@
 Tool to generate a cross-linking spectral library for Spectronaut from Xi results.
 
 ### Note
-This tool only works if your search results were deposited in the XiDB (Members of the Rappsilber lab and collaborators).
-
-If there is interest from external people this might change in the future.
+This tool requires adaptation in the code regarding the location of the peak list data in order to function in a different environment than the Rappsilber lab.
 
 ### Requirements
 Python 3
