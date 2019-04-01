@@ -419,10 +419,6 @@ for psm_index, psm in best_df2.iterrows():
     fragments = xiAnn_json['fragments']
     clusters = xiAnn_json['clusters']
 
-    cl_residue_pair = [psm['ProteinLinkPos1'], psm['ProteinLinkPos2']]
-    cl_residue_pair.sort()
-    cl_residue_pair = [str(x) for x in cl_residue_pair]
-
     strippedSequence = strip_sequence(psm['PepSeq1'] + "_" + psm['PepSeq2'])
     labeledSequence = get_lbl_sequence(psm, lbl, label_both=True)
 
@@ -431,8 +427,17 @@ for psm_index, psm in best_df2.iterrows():
     else:
         modifiedSequence = replace_mods(psm.PepSeq1 + "_" + psm.PepSeq2)
 
+    # sort proteins and cl_residue_pairs ascending by crosslinked residue pair
+    protein_pos_list = [
+        (psm['ProteinLinkPos1'], psm['Protein1']), (psm['ProteinLinkPos2'], psm['Protein2'])]
+
+    protein_pos_list.sort(key=lambda x: x[0])
+
+    cl_residue_pair = "_".join([str(x[0]) for x in protein_pos_list])
+    protein_id_str = "_".join([str(x[1]) for x in protein_pos_list])
+
     entry_template = {
-        "ProteinId": psm.Protein1 + "_" + psm.Protein2,
+        "ProteinId": protein_id_str,
         "StrippedSequence": strippedSequence,
         "iRT": psm.iRT,
         "RT": psm.rt,
@@ -444,9 +449,7 @@ for psm_index, psm in best_df2.iterrows():
         "scanID": psm['scan'],
         "run": psm.run,
         "searchID": psm.SearchID,
-        #"peptide1": strip_sequence(psm['PepSeq1']),
-        #"peptide2": strip_sequence(psm['PepSeq2']),
-        "cl_residue_pair": "_".join(cl_residue_pair),
+        "cl_residue_pair": cl_residue_pair,
         "LabeledSequence": labeledSequence
     }
 
