@@ -10,7 +10,7 @@ import copy
 import re
 import os
 import codecs
-
+import ssl
 from config import *
 
 
@@ -55,6 +55,7 @@ def get_annotation_xidb(psm_row):
             int(psm_row.SearchID), int(psm_row.PSMID), psm_row.PepSeq1, psm_row.PepSeq2, int(psm_row.LinkPos1),
             int(psm_row.LinkPos2))
 
+    ssl._create_default_https_context = ssl._create_unverified_context
     reader = codecs.getreader("utf-8")
     data = json.load(reader(urllib.request.urlopen(url)))
     return data
