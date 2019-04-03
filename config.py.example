@@ -8,8 +8,13 @@ output_path = baseDir + "out/"
 # iRT equation parameters
 # y = m * x + t
 # e.g. y= 0.6452 x + 47.469
-iRT_m = 0.3807
-iRT_t = 47.887
+# in form:
+# 'run': (iRT_m, iRT_t)
+iRT_params = {
+    'run_001': (0.6452, 47.469),
+    'run_002': (0.3871, 42.574),
+    'run_003': (0.2476, 22.786),
+}
 
 proteinId = "cytochromeC"
 includeNeutralLossFragments = False

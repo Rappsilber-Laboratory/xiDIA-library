@@ -209,7 +209,8 @@ def strip_sequence(sequence):
     return re.sub('([a-z\-0-9_]+)', '', sequence)
 
 
-def calculate_iRT_value(rt, m, t):
+def calculate_iRT_value(rt, run, param_dict):
+    m, t = param_dict[run]
     return (rt - t) / m
 
 
@@ -385,7 +386,7 @@ psm_df['rt'] = psm_df.apply(
     lambda row: get_rt_from_scan_id(row["scan"], mzML_reader_map[row["run"]]), axis=1)
 
 # transform rts to iRT -> what about the nan columns?
-psm_df['iRT'] = psm_df.apply(lambda row: calculate_iRT_value(row.rt, iRT_m, iRT_t), axis=1)
+psm_df['iRT'] = psm_df.apply(lambda row: calculate_iRT_value(row.rt, row.run, iRT_params), axis=1)
 psm_df['pep_seq'] = psm_df.apply(lambda row: create_unique_pep_seq(row), axis=1)
 
 psm_df.sort_values("Score", inplace=True, ascending=False)
