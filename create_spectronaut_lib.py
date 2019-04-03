@@ -209,9 +209,12 @@ def strip_sequence(sequence):
     return re.sub('([a-z\-0-9_]+)', '', sequence)
 
 
-def calculate_iRT_value(rt, run, param_dict):
-    m, t = param_dict[run]
-    return (rt - t) / m
+def calculate_iRT_value(row, params):
+    if hasattr(row, 'irt_group'):
+        m, t = params[int(row.irt_group)]
+    else:
+        m, t = params[0]
+    return (row.rt - t) / m
 
 
 def check_for_isotope_labeling(crosslinker):
@@ -386,7 +389,7 @@ psm_df['rt'] = psm_df.apply(
     lambda row: get_rt_from_scan_id(row["scan"], mzML_reader_map[row["run"]]), axis=1)
 
 # transform rts to iRT -> what about the nan columns?
-psm_df['iRT'] = psm_df.apply(lambda row: calculate_iRT_value(row.rt, row.run, iRT_params), axis=1)
+psm_df['iRT'] = psm_df.apply(lambda row: calculate_iRT_value(row, iRT_params), axis=1)
 psm_df['pep_seq'] = psm_df.apply(lambda row: create_unique_pep_seq(row), axis=1)
 
 psm_df.sort_values("Score", inplace=True, ascending=False)
@@ -492,7 +495,6 @@ for psm_index, psm in best_df2.iterrows():
     entry_df = pd.DataFrame.from_records(entries)
     if len(entry_df) > 0:
         entry_df = entry_df[(entry_df.FragmentMz >= fragmentMzLowerLim) & (entry_df.FragmentMz <= fragmentMzUpperLim)]
-    if len(entry_df) > 0:
         entry_df.drop_duplicates(inplace=True)
         entry_df.sort_values(by="RelativeFragmentIntensity", inplace=True, ascending=False)
         entry_df.RelativeFragmentIntensity = entry_df.apply(
@@ -584,19 +586,19 @@ lib_df.to_csv(output_path + proteinId + "_" + "_".join(
 
 with open(output_path + "params.txt", "w") as text_file:
     psm_csv_path = baseDir + "psm_csv/"
-    text_file.write("iRT_m : %s\n" % iRT_m)
-    text_file.write("iRT_t : %s\n" % iRT_t)
-    text_file.write("proteinId : %s\n" % proteinId)
+    for p in iRT_params:
+        text_file.write("iRT_params m: %s\t t: %s\n" % p)
+    text_file.write("proteinId: %s\n" % proteinId)
     text_file.write("includeNeutralLossFragments: %s\n" % includeNeutralLossFragments)
-    text_file.write("writeClSitesToModifiedSequence : %s\n" % writeClSitesToModifiedSequence)
-    text_file.write("clName : %s\n" % clName)
-    text_file.write("label_experiment : %s\n" % label_experiment)
-    text_file.write("clLightLabelName : %s\n" % clLightLabelName)
-    text_file.write("clHeavyLabelName : %s\n" % clHeavyLabelName)
-    text_file.write("deuteriumCount : %s\n" % deuteriumCount)
-    text_file.write("fragmentMzLowerLim : %s\n" % fragmentMzLowerLim)
-    text_file.write("fragmentMzUpperLim : %s\n" % fragmentMzUpperLim)
-    text_file.write("nClContainingFragments : %s\n" % nClContainingFragments)
-    text_file.write("nLinearFragments : %s\n" % nLinearFragments)
+    text_file.write("writeClSitesToModifiedSequence: %s\n" % writeClSitesToModifiedSequence)
+    text_file.write("clName: %s\n" % clName)
+    text_file.write("label_experiment: %s\n" % label_experiment)
+    text_file.write("clLightLabelName: %s\n" % clLightLabelName)
+    text_file.write("clHeavyLabelName: %s\n" % clHeavyLabelName)
+    text_file.write("deuteriumCount: %s\n" % deuteriumCount)
+    text_file.write("fragmentMzLowerLim: %s\n" % fragmentMzLowerLim)
+    text_file.write("fragmentMzUpperLim: %s\n" % fragmentMzUpperLim)
+    text_file.write("nClContainingFragments: %s\n" % nClContainingFragments)
+    text_file.write("nLinearFragments: %s\n" % nLinearFragments)
     text_file.write("in files mzML:\n%s\n" % "\n".join(os.listdir(mzml_path)))
     text_file.write("in files PSM CSV:\n%s\n" % "\n".join(os.listdir(psm_csv_path)))

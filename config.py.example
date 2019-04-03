@@ -9,12 +9,12 @@ output_path = baseDir + "out/"
 # y = m * x + t
 # e.g. y= 0.6452 x + 47.469
 # in form:
-# 'run': (iRT_m, iRT_t)
-iRT_params = {
-    'run_001': (0.6452, 47.469),
-    'run_002': (0.3871, 42.574),
-    'run_003': (0.2476, 22.786),
-}
+# (iRT_m, iRT_t)
+# if you have more than one entry in this list the input csv file needs to have a column called
+# 'irt_group', which gives the index into the list (0 for the first entry, 1 for the second, etc..)
+iRT_params = [
+    (0.3807, 47.887),
+]
 
 proteinId = "cytochromeC"
 includeNeutralLossFragments = False
