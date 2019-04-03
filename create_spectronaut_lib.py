@@ -362,8 +362,14 @@ if nClContainingFragments + nLinearFragments > 20:
 
 # create PSM DataFrame
 print("Reading in PSM csv files...")
+psm_files = os.listdir(psm_csv_path)
+
+if 'all_psms_with_rt.csv' in psm_files:
+    print('Found all_psms_with_rt.csv in psm_csv folder. Using only this as input!')
+    psm_files = ['all_psms_with_rt.csv']
+
 df_list = []
-for csv_filename in os.listdir(psm_csv_path):
+for csv_filename in psm_files:
     if csv_filename.endswith(".csv"):
         print("reading %s..." % csv_filename)
         df_list.append(pd.read_csv(psm_csv_path + csv_filename))
@@ -371,22 +377,26 @@ for csv_filename in os.listdir(psm_csv_path):
         print("skipped file %s" % csv_filename)
 psm_df = pd.concat(df_list, ignore_index=True)
 
-# load mzmls
-print("Reading in mzML files...")
-mzML_reader_map = {}
-for mzML_filename in os.listdir(mzml_path):
-    if mzML_filename.endswith(".mzML"):
-        print("reading %s..." % mzML_filename)
-        mzML_reader_map[mzML_filename[:-5]] = pymzml.run.Reader(mzml_path + mzML_filename,
-                                                                build_index_from_scratch=True)
-    else:
-        print("skipped file %s" % mzML_filename)
+if 'rt' not in psm_df.columns:
+    print("rt column not found in psm file.\nReading in in mzML files...")
+    # load mzmls
+    mzML_reader_map = {}
+    for mzML_filename in os.listdir(mzml_path):
+        if mzML_filename.endswith(".mzML"):
+            print("reading %s..." % mzML_filename)
+            mzML_reader_map[mzML_filename[:-5]] = pymzml.run.Reader(mzml_path + mzML_filename,
+                                                                    build_index_from_scratch=True)
+        else:
+            print("skipped file %s" % mzML_filename)
 
+    # annotate psms with retention time
+    print("Getting retention time from mzMLs...")
+    psm_df['rt'] = psm_df.apply(
+        lambda row: get_rt_from_scan_id(row["scan"], mzML_reader_map[row["run"]]), axis=1)
 
-# annotate psms with retention time
-print("Getting retention time from mzMLs...")
-psm_df['rt'] = psm_df.apply(
-    lambda row: get_rt_from_scan_id(row["scan"], mzML_reader_map[row["run"]]), axis=1)
+    # writing csv file with retention times
+    psm_df.to_csv(psm_csv_path + 'all_psms_with_rt.csv')
+
 
 # transform rts to iRT -> what about the nan columns?
 psm_df['iRT'] = psm_df.apply(lambda row: calculate_iRT_value(row, iRT_params), axis=1)
@@ -402,13 +412,13 @@ for index, group in psm_df.groupby("pep_seq"):
     best_scores.append(group.head(1))
 
 best_df = pd.concat(best_scores)
-best_df2 = best_df.dropna(subset=['PSMID', 'PepSeq1', 'PepSeq2', 'LinkPos1', 'LinkPos2'])
+best_df = best_df.dropna(subset=['PSMID', 'PepSeq1', 'PepSeq2', 'LinkPos1', 'LinkPos2'])
 
 
 lib_list = []
 i = 1
-for psm_index, psm in best_df2.iterrows():
-    print("{}/{} Done.".format(i, best_df2.shape[0]))
+for psm_index, psm in best_df.iterrows():
+    print("{}/{} Done.".format(i, best_df.shape[0]))
 
     # prepare entry template
     if not label_experiment:
