@@ -407,6 +407,7 @@ i = 1
 for psm_index, psm in best_df2.iterrows():
     print("{}/{} Done.".format(i, best_df2.shape[0]))
 
+    # prepare entry template
     if not label_experiment:
         lbl = clName
     else:
@@ -414,11 +415,6 @@ for psm_index, psm in best_df2.iterrows():
             lbl = clLightLabelName
         else:
             lbl = clHeavyLabelName
-
-    entries = []
-    xiAnn_json = get_annotation_xidb(psm)
-    fragments = xiAnn_json['fragments']
-    clusters = xiAnn_json['clusters']
 
     strippedSequence = strip_sequence(psm['PepSeq1'] + "_" + psm['PepSeq2'])
     labeledSequence = get_lbl_sequence(psm, lbl, label_both=True)
@@ -454,35 +450,44 @@ for psm_index, psm in best_df2.iterrows():
         "LabeledSequence": labeledSequence
     }
 
+    # get annotations
+    xiAnn_json = get_annotation_xidb(psm)
+    fragments = xiAnn_json['fragments']
+    clusters = xiAnn_json['clusters']
+    entries = []
+
     for fragment in fragments:
-        if not fragment['name'] == "P+P":
-            for clusterId in fragment['clusterIds']:
-                firstPeakId = clusters[clusterId]['firstPeakId']
-                numbers = re.compile('\d+')
-                entry = copy.deepcopy(entry_template)
-                entry["FragmentCharge"] = clusters[clusterId]['charge']
-                entry["FragmentType"] = fragment['name'][0]
-                entry["FragmentNumber"] = numbers.findall(fragment['name'])[0]
-                for cluster in fragment["clusterInfo"]:
-                    if cluster['Clusterid'] == clusterId:
-                        entry["FragmentMz"] = cluster['calcMZ']
-                entry["RelativeFragmentIntensity"] = xiAnn_json['peaks'][firstPeakId]['intensity']
-                # [x['intensity'] for x in xiAnn_json['peaks'] if clusterId in x['clusterIds']]
-                if 'H20' in fragment['name']:
-                    entry["FragmentLossType"] = 'H2O'
-                elif 'NH3' in fragment['name']:
-                    entry["FragmentLossType"] = 'NH3'
-                else:
-                    entry["FragmentLossType"] = ''
-                if re.search('\+P', fragment['name']):
-                    entry["CLContainingFragment"] = True
-                else:
-                    entry["CLContainingFragment"] = False
-                if re.search('Loss', fragment['type']):
-                    entry["LossyFragment"] = True
-                else:
-                    entry["LossyFragment"] = False
-                entries.append(pd.Series(entry))
+        try:
+            if not fragment['name'] == "P+P":
+                for clusterId in fragment['clusterIds']:
+                    firstPeakId = clusters[clusterId]['firstPeakId']
+                    numbers = re.compile('\d+')
+                    entry = copy.deepcopy(entry_template)
+                    entry["FragmentCharge"] = clusters[clusterId]['charge']
+                    entry["FragmentType"] = fragment['name'][0]
+                    entry["FragmentNumber"] = numbers.findall(fragment['name'])[0]
+                    for cluster in fragment["clusterInfo"]:
+                        if cluster['Clusterid'] == clusterId:
+                            entry["FragmentMz"] = cluster['calcMZ']
+                    entry["RelativeFragmentIntensity"] = xiAnn_json['peaks'][firstPeakId]['intensity']
+                    # [x['intensity'] for x in xiAnn_json['peaks'] if clusterId in x['clusterIds']]
+                    if 'H20' in fragment['name']:
+                        entry["FragmentLossType"] = 'H2O'
+                    elif 'NH3' in fragment['name']:
+                        entry["FragmentLossType"] = 'NH3'
+                    else:
+                        entry["FragmentLossType"] = ''
+                    if re.search('\+P', fragment['name']):
+                        entry["CLContainingFragment"] = True
+                    else:
+                        entry["CLContainingFragment"] = False
+                    if re.search('Loss', fragment['type']):
+                        entry["LossyFragment"] = True
+                    else:
+                        entry["LossyFragment"] = False
+                    entries.append(pd.Series(entry))
+        except Exception as e:
+            raise Exception(e, fragment)
 
     entry_df = pd.DataFrame.from_records(entries)
     if len(entry_df) > 0:
