@@ -395,7 +395,7 @@ if 'rt' not in psm_df.columns:
         lambda row: get_rt_from_scan_id(row["scan"], mzML_reader_map[row["run"]]), axis=1)
 
     # writing csv file with retention times
-    psm_df.to_csv(psm_csv_path + 'all_psms_with_rt.csv')
+    psm_df.to_csv(psm_csv_path + 'all_psms_with_rt.csv', index=False)
 
 
 # transform rts to iRT -> what about the nan columns?
@@ -416,10 +416,8 @@ best_df = best_df.dropna(subset=['PSMID', 'PepSeq1', 'PepSeq2', 'LinkPos1', 'Lin
 
 
 lib_list = []
-i = 1
-for psm_index, psm in best_df.iterrows():
+for i, (psm_index, psm) in enumerate(best_df.iterrows()):
     print("{}/{} Done.".format(i, best_df.shape[0]))
-
     # prepare entry template
     if not label_experiment:
         lbl = clName
@@ -503,15 +501,22 @@ for psm_index, psm in best_df.iterrows():
             raise Exception(e, fragment)
 
     entry_df = pd.DataFrame.from_records(entries)
-    if len(entry_df) > 0:
-        entry_df = entry_df[(entry_df.FragmentMz >= fragmentMzLowerLim) & (entry_df.FragmentMz <= fragmentMzUpperLim)]
-        entry_df.drop_duplicates(inplace=True)
-        entry_df.sort_values(by="RelativeFragmentIntensity", inplace=True, ascending=False)
-        entry_df.RelativeFragmentIntensity = entry_df.apply(
-                lambda row: row.RelativeFragmentIntensity / entry_df.RelativeFragmentIntensity.max(), axis=1)
-        # ToDo: else error handling?
+    if len(entry_df) == 0:
+        continue
+
+    # apply filter
+    entry_df = entry_df[(entry_df.FragmentMz >= fragmentMzLowerLim) & (entry_df.FragmentMz <= fragmentMzUpperLim)]
+    entry_df.drop_duplicates(inplace=True)
+    if len(entry_df) == 0:
+        continue
+
+    # normalize the relative Intensities to 1
+    entry_df.sort_values(by="RelativeFragmentIntensity", inplace=True, ascending=False)
+    entry_df.RelativeFragmentIntensity = entry_df.apply(
+            lambda row: row.RelativeFragmentIntensity / entry_df.RelativeFragmentIntensity.max(), axis=1)
+
     lib_list.append(entry_df)
-    i += 1
+
 lib_df = pd.concat(lib_list)
 
 # filter out neutral loss fragments
