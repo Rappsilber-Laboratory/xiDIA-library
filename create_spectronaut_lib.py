@@ -268,17 +268,15 @@ def get_all_mods(mod_seq_list):
     return unmatches
 
 
-def get_lbl_sequence(psm, lbl, label_both=True):
+def get_lbl_sequence(peps, lbl, label_both=True):
     """
-    Creates the 'LabeledSequence' column for spectronaut.
-
+    Creates the 'LabeledSequence' column for Spectronaut.
     """
+    seq1 = replace_mods(peps[0]['seq'], remove_heavy=False)
+    seq2 = replace_mods(peps[1]['seq'], remove_heavy=False)
 
-    seq1 = replace_mods(psm.PepSeq1, remove_heavy=False)
-    seq2 = replace_mods(psm.PepSeq2, remove_heavy=False)
-
-    cl_pos1 = int(psm.LinkPos1) - 1
-    cl_pos2 = int(psm.LinkPos2) - 1
+    cl_pos1 = int(peps[0]['pepLinkPos']) - 1
+    cl_pos2 = int(peps[1]['pepLinkPos']) - 1
 
     # get the length of modification label and positions
     modseq1_pos = [i.span() for i in re.finditer('([[a-z\-0-9]+])', seq1)]
@@ -384,12 +382,12 @@ if 'rt' not in psm_df.columns:
 
 # transform rts to iRT -> ToDo: what about the nan columns?
 psm_df['iRT'] = psm_df.apply(lambda row: calculate_iRT_value(row, iRT_params), axis=1)
-psm_df['pep_seq'] = psm_df.apply(lambda row: create_unique_pep_seq(row), axis=1)
+psm_df['cl_species_id'] = psm_df.apply(lambda row: cl_species_id(row), axis=1)
 
 # filter to best scoring match per cl_species_id. Unique (peptide pair - link - charge) combination
 psm_df.sort_values('Score', inplace=True, ascending=False)
 best_scores = []
-for index, group in psm_df.groupby("pep_seq"):
+for index, group in psm_df.groupby('cl_species_id'):
     best_scores.append(group.head(1))
 best_df = pd.concat(best_scores)
 best_df = best_df.dropna(subset=['PSMID', 'PepSeq1', 'PepSeq2', 'LinkPos1', 'LinkPos2'])
@@ -409,29 +407,51 @@ for i, (psm_index, psm) in enumerate(best_df.iterrows()):
         else:
             lbl = clHeavyLabelName
 
-    strippedSequence = strip_sequence(psm['PepSeq1'] + "_" + psm['PepSeq2'])
-    labeledSequence = get_lbl_sequence(psm, lbl, label_both=True)
+    # sort peptide sequences and corresponding columns alphabetically by peptide sequence
+    unsorted_peps = [
+        {
+            'seq': psm['PepSeq1'],
+            'pepLinkPos': psm['LinkPos1'],
+            'protLinkPos': psm['ProteinLinkPos1'],
+            'protein': psm['Protein1']
+        },
+        {
+            'seq': psm['PepSeq2'],
+            'pepLinkPos': psm['LinkPos2'],
+            'protLinkPos': psm['ProteinLinkPos2'],
+            'protein': psm['Protein2']
+        },
+    ]
+    sorted_peps = sorted(unsorted_peps, key=lambda k: k['seq'])
+    # set flag for switched peptide ids
+    switched_pep_ids = psm['PepSeq1'] != sorted_peps[0]['seq']
 
+    # create FragmentGroupId - Unique (peptide pair - link - charge) combination
+    fragmentGroupId = psm['cl_species_id']
+
+    # create StrippedSequence - 'linearised' & only amino acids
+    strippedSequence = strip_sequence(sorted_peps[0]['seq'] + "_" + sorted_peps[1]['seq'])
+
+    # create LabeledSequence
+    labeledSequence = get_lbl_sequence(sorted_peps, lbl, label_both=True)
+
+    # create ModifiedSequence
     if writeClSitesToModifiedSequence:
-        modifiedSequence = get_lbl_sequence(psm, lbl, label_both=True)
+        modifiedSequence = get_lbl_sequence(sorted_peps, lbl, label_both=True)
     else:
-        modifiedSequence = replace_mods(psm.PepSeq1 + "_" + psm.PepSeq2)
+        modifiedSequence = replace_mods(sorted_peps[0]['seq'] + "_" + sorted_peps[1]['seq'])
 
-    # sort proteins and cl_residue_pairs ascending by crosslinked residue pair
-    protein_pos_list = [
-        (psm['ProteinLinkPos1'], psm['Protein1']), (psm['ProteinLinkPos2'], psm['Protein2'])]
-
-    protein_pos_list.sort(key=lambda x: x[0])
-
-    cl_residue_pair = "_".join([str(x[0]) for x in protein_pos_list])
-    protein_id_str = "_".join([str(x[1]) for x in protein_pos_list])
+    # create ProteinId, CrosslinkedResidues and LinkId
+    proteinId = f"{sorted_peps[0]['protein']}_{sorted_peps[1]['protein']}"
+    crosslinkedResidues = f"{sorted_peps[0]['protLinkPos']}_{sorted_peps[1]['protLinkPos']}"
+    linkId = proteinId + '-' + crosslinkedResidues
 
     entry_template = {
-        "ProteinId": protein_id_str,
+        "ProteinId": proteinId,
         "StrippedSequence": strippedSequence,
         "iRT": psm.iRT,
         "RT": psm.rt,
-        "FragmentGroupId": psm.pep_seq,
+        "FragmentGroupId": psm['cl_species_id'],
         "PrecursorCharge": int(psm['match charge']),
         "PrecursorMz": psm['match mass']/psm['match charge'] + 1.00794,
         "ModifiedSequence": modifiedSequence,
@@ -439,7 +459,7 @@ for i, (psm_index, psm) in enumerate(best_df.iterrows()):
         "scanID": psm['scan'],
         "run": psm.run,
         "searchID": psm.SearchID,
-        "cl_residue_pair": cl_residue_pair,
+        "crosslinkedResidues": crosslinkedResidues,
         "LabeledSequence": labeledSequence
     }
 
@@ -451,34 +471,43 @@ for i, (psm_index, psm) in enumerate(best_df.iterrows()):
 
     for fragment in fragments:
         try:
-            if not fragment['name'] == "P+P":
-                for clusterId in fragment['clusterIds']:
-                    firstPeakId = clusters[clusterId]['firstPeakId']
-                    numbers = re.compile('\d+')
-                    entry = copy.deepcopy(entry_template)
-                    entry["FragmentCharge"] = clusters[clusterId]['charge']
-                    entry["FragmentType"] = fragment['name'][0]
-                    entry["FragmentNumber"] = numbers.findall(fragment['name'])[0]
-                    for cluster in fragment["clusterInfo"]:
-                        if cluster['Clusterid'] == clusterId:
-                            entry["FragmentMz"] = cluster['calcMZ']
-                    entry["RelativeFragmentIntensity"] = xiAnn_json['peaks'][firstPeakId]['intensity']
-                    # [x['intensity'] for x in xiAnn_json['peaks'] if clusterId in x['clusterIds']]
-                    if 'H20' in fragment['name']:
-                        entry["FragmentLossType"] = 'H2O'
-                    elif 'NH3' in fragment['name']:
-                        entry["FragmentLossType"] = 'NH3'
-                    else:
-                        entry["FragmentLossType"] = ''
-                    if re.search('\+P', fragment['name']):
-                        entry["CLContainingFragment"] = True
-                    else:
-                        entry["CLContainingFragment"] = False
-                    if re.search('Loss', fragment['type']):
-                        entry["LossyFragment"] = True
-                    else:
-                        entry["LossyFragment"] = False
-                    entries.append(pd.Series(entry))
+            if fragment['name'] == "P+P":
+                continue
+            if not includeNeutralLossFragments and re.search('Loss', fragment['type']):
+                continue
+            for clusterId in fragment['clusterIds']:
+                firstPeakId = clusters[clusterId]['firstPeakId']
+                re_numbers = re.compile('\d+')
+                entry = copy.deepcopy(entry_template)
+                entry["FragmentCharge"] = clusters[clusterId]['charge']
+                entry["FragmentType"] = fragment['name'][0]
+                entry["FragmentNumber"] = re_numbers.findall(fragment['name'])[0]
+                if switched_pep_ids:
+                    if fragment['peptideId'] == 0:
+                        entry['FragmentPepId'] = 1
+                    if fragment['peptideId'] == 1:
+                        entry['FragmentPepId'] = 0
+                else:
+                    entry['FragmentPepId'] = fragment['peptideId']
+                for cluster in fragment["clusterInfo"]:
+                    if cluster['Clusterid'] == clusterId:
+                        entry["FragmentMz"] = cluster['calcMZ']
+                entry["RelativeFragmentIntensity"] = xiAnn_json['peaks'][firstPeakId]['intensity']
+                if 'H20' in fragment['name']:
+                    entry["FragmentLossType"] = 'H2O'
+                elif 'NH3' in fragment['name']:
+                    entry["FragmentLossType"] = 'NH3'
+                else:
+                    entry["FragmentLossType"] = ''
+                if re.search('\+P', fragment['name']):
+                    entry["CLContainingFragment"] = True
+                else:
+                    entry["CLContainingFragment"] = False
+                if re.search('Loss', fragment['type']):
+                    entry["LossyFragment"] = True
+                else:
+                    entry["LossyFragment"] = False
+                entries.append(pd.Series(entry))
         except Exception as e:
             raise Exception(e, fragment)
 
@@ -501,10 +530,6 @@ for i, (psm_index, psm) in enumerate(best_df.iterrows()):
     lib_list.append(entry_df)
 
 lib_df = pd.concat(lib_list)
-
-# filter out neutral loss fragments
-if not includeNeutralLossFragments:
-    lib_df = lib_df[~lib_df.LossyFragment]
 
 filtered_fragments_list = []
 
