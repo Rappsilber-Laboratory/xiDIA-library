@@ -15,8 +15,14 @@ from config import *
 
 
 def get_rt_from_scan_id(scan_id, mzml_reader):
+    """
+    Get the retention time for a scan from the mzml.
+
+    :param scan_id: Scan id
+    :param mzml_reader: Mzml reader object
+    :return: Retention time
+    """
     try:
-        # rt = msrun[id1]['scan start time']
         rt = mzml_reader[int(scan_id)]['scan start time']
     except KeyError as e:
         print('could not get rt for scan %s' % scan_id)
@@ -25,7 +31,7 @@ def get_rt_from_scan_id(scan_id, mzml_reader):
     return rt
 
 
-def create_unique_pep_seq(row):
+def cl_species_id(row):
     unsorted_peps = [
         {"seq": row['PepSeq1'], "linkpos": row['LinkPos1']},
         {"seq": row['PepSeq2'], "linkpos": row['LinkPos2']}
@@ -33,7 +39,6 @@ def create_unique_pep_seq(row):
 
     sorted_peps = sorted(unsorted_peps, key=lambda k: k['seq'])
     charge = row["match charge"]
-    # crossLinker = row['Crosslinker']
     pep1 = sorted_peps[0]['seq']
     pep2 = sorted_peps[1]['seq']
     linkpos1 = sorted_peps[0]['linkpos']
@@ -187,13 +192,6 @@ def get_annotation_json(json_request):
     return response_json
 
 
-# def replace_HL_mods(sequence):
-#	 """ Removes heavy/light modifications of the cross-linker, e.g. bs3nh2 """
-#	 mods = ["bs3nh2", "bs3oh", "bs3-d4nh2", "bs3-d4oh"]
-#	 mods = "|".join(mods)
-#	 return replace_mods(re.sub('({})'.format(mods), '', sequence))
-
-
 def replace_mods(sequence, remove_heavy=True):
     """
     encloses modifications with brackets, e.g. ox -> [ox]
@@ -223,23 +221,6 @@ def check_for_isotope_labeling(crosslinker):
         return int(match.group(1))
     else:
         return 0
-
-
-# def sanity_check_RT():
-#	 expmz = []
-#	 scanmz = []
-#	 for ii, row in psm_df.iterrows():
-#
-#		 try:
-#			 scanmz.append(float(msruns[row["run"]][row["scan"]]["precursors"][0]["mz"]))
-#			 expmz.append(row["exp m/z"])
-#		 except:
-#			 pass
-#
-#	 expmz = np.array(expmz)
-#	 scanmz = np.array(scanmz)
-#	 diff = scanmz - expmz
-#	 plt.hist(diff)
 
 
 def invert_modifications(mod_string, lth=True):
@@ -377,6 +358,7 @@ for csv_filename in psm_files:
         print("skipped file %s" % csv_filename)
 psm_df = pd.concat(df_list, ignore_index=True)
 
+# Read in retention time
 if 'rt' not in psm_df.columns:
     print("rt column not found in psm file.\nReading in in mzML files...")
     # load mzmls
@@ -397,28 +379,28 @@ if 'rt' not in psm_df.columns:
     # writing csv file with retention times
     psm_df.to_csv(psm_csv_path + 'all_psms_with_rt.csv', index=False)
 
-
-# transform rts to iRT -> what about the nan columns?
+# transform rts to iRT -> ToDo: what about the nan columns?
 psm_df['iRT'] = psm_df.apply(lambda row: calculate_iRT_value(row, iRT_params), axis=1)
 psm_df['pep_seq'] = psm_df.apply(lambda row: create_unique_pep_seq(row), axis=1)
 
-psm_df.sort_values("Score", inplace=True, ascending=False)
-
+# filter to best scoring match per cl_species_id. Unique (peptide pair - link - charge) combination
+psm_df.sort_values('Score', inplace=True, ascending=False)
 # filter out decoys
 psm_df = psm_df[psm_df.isTT]
 
 best_scores = []
 for index, group in psm_df.groupby("pep_seq"):
     best_scores.append(group.head(1))
-
 best_df = pd.concat(best_scores)
 best_df = best_df.dropna(subset=['PSMID', 'PepSeq1', 'PepSeq2', 'LinkPos1', 'LinkPos2'])
 
 
+# Create library by looping over the PSMs
 lib_list = []
 for i, (psm_index, psm) in enumerate(best_df.iterrows()):
     print("{}/{} Done.".format(i, best_df.shape[0]))
-    # prepare entry template
+
+    # prepare entry template - information that's common to all fragments of a PSM
     if not label_experiment:
         lbl = clName
     else:
@@ -505,7 +487,8 @@ for i, (psm_index, psm) in enumerate(best_df.iterrows()):
         continue
 
     # apply filter
-    entry_df = entry_df[(entry_df.FragmentMz >= fragmentMzLowerLim) & (entry_df.FragmentMz <= fragmentMzUpperLim)]
+    entry_df = entry_df[(entry_df.FragmentMz >= fragmentMzLowerLim) &
+                        (entry_df.FragmentMz <= fragmentMzUpperLim)]
     entry_df.drop_duplicates(inplace=True)
     if len(entry_df) == 0:
         continue
@@ -599,6 +582,7 @@ lib_df.to_csv(output_path + proteinId + "_" + "_".join(
         nClContainingFragments, nLinearFragments, includeNeutralLossFragments, idstr, d), index=False)
 
 
+# write out parameters used for creating this library
 with open(output_path + "params.txt", "w") as text_file:
     psm_csv_path = baseDir + "psm_csv/"
     for p in iRT_params:
