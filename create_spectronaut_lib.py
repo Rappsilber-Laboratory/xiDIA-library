@@ -447,6 +447,7 @@ for i, (psm_index, psm) in enumerate(best_df.iterrows()):
     linkId = proteinId + '-' + crosslinkedResidues
 
     entry_template = {
+        "linkId": linkId,
         "ProteinId": proteinId,
         "StrippedSequence": strippedSequence,
         "iRT": psm.iRT,
