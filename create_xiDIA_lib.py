@@ -478,7 +478,7 @@ for i, (psm_index, psm) in enumerate(best_df.iterrows()):
             irt_g = psm['irt_group']
         else:
             irt_g = 0
-        irt = (rt - iRT_params[irt_g][0]) / iRT_params[irt_g][1]
+        irt = (rt - iRT_params[irt_g][1]) / iRT_params[irt_g][0]
 
         peaklist = zip(scan['m/z array'], scan['intensity array'])
         peptide = {
