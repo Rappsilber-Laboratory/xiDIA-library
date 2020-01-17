@@ -473,7 +473,7 @@ for i, (psm_index, psm) in enumerate(best_df.iterrows()):
             continue
 
         scan = mgf_reader[psm['ScanId']]
-        rt = scan['params']['rtinseconds']
+        rt = scan['params']['rtinseconds'] / 60
         if 'irt_group' in psm.keys():
             irt_g = psm['irt_group']
         else:
