@@ -48,3 +48,6 @@ mgf_path = baseDir + "mgf/"      # path to folder with MGF files for offlineXi
 # annotation parameters
 ion_types = ['peptide', 'a', 'b', 'c', 'x', 'y', 'z']
 ppm_tol = 10
+
+# URL to annotator
+annotator_url = 'https://xiview.org/xiAnnotator/annotate/FULL'

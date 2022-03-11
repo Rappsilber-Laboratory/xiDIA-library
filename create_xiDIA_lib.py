@@ -183,14 +183,14 @@ def create_json_annotation_request(
     return json.dumps(json_dict)
 
 
-def get_annotation_json(json_request):
+def get_annotation_json(json_request, annotator_url):
     """
     :param json_request: xiAnnotator json request
+    :param annotator_url: URL to xiAnnotator webserver
     :return: annotation response JSON
     """
     headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
-    url = 'https://xi3.bio.ed.ac.uk/xiAnnotator/annotate/FULL'
-    r = requests.post(url, data=json_request, headers=headers, verify=False)
+    r = requests.post(annotator_url, data=json_request, headers=headers, verify=False)
     response_json = r.json()
     return response_json
 
@@ -496,7 +496,7 @@ for i, (psm_index, psm) in enumerate(best_df.iterrows()):
             fragment_tolerance_ppm=ppm_tol,
             cross_linker=psm['CrosslinkerModMass'],
         )
-        xiAnn_json = get_annotation_json(xiAnn_request)
+        xiAnn_json = get_annotation_json(xiAnn_request, annotator_url=annotator_url)
         searchId = 'offline'
 
     else:
